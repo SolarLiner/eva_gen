@@ -4,11 +4,16 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List
 
-from common.front_end.lexer import LineCol
+from ..front_end.lexer import LineCol
 
-Visitor = typing.Callable[['BaseNode'], Any]
-ExprNode = typing.Union['IdNode', 'ValueNode',
-                        'UnaryOperationNode', 'BinaryOperationNode', 'FunctionCallNode']
+Visitor = typing.Callable[["BaseNode"], Any]
+ExprNode = typing.Union[
+    "IdentNode",
+    "ValueNode",
+    "UnaryOperationNode",
+    "BinaryOperationNode",
+    "FunctionCallNode",
+]
 
 
 class BinaryOperation(Enum):
@@ -84,7 +89,9 @@ class ValueNode(BaseNode):
 
 
 class BinaryOperationNode(BaseNode):
-    def __init__(self, span: Span, left: ExprNode, op: BinaryOperation, right: ExprNode):
+    def __init__(
+        self, span: Span, left: ExprNode, op: BinaryOperation, right: ExprNode
+    ):
         super().__init__(span)
         self.left = left
         self.op = op
@@ -136,7 +143,7 @@ class CodeBlockNode(BaseNode):
         super().visit(visitor)
 
     def display(self, n: int):
-        s = ''.join(node.display(n+1) for node in self.block)
+        s = "".join(node.display(n + 1) for node in self.block)
         return f"{n*'  '}block\n{s}"
 
 
@@ -165,20 +172,22 @@ class IdentNode(BaseNode):
 
 
 class FunctionNode(BaseNode):
-    def __init__(self, span: Span, name: str, args: List[ExprNode], code: CodeBlockNode):
+    def __init__(
+        self, span: Span, name: str, args: List[ExprNode], code: CodeBlockNode
+    ):
         super().__init__(span)
         self.name = name
         self.args = args
-        self.code = code
+        self.block = code
 
     def visit(self, visitor: Visitor):
         for arg in self.args:
             visitor(arg)
-        visitor(self.code)
+        visitor(self.block)
         super().visit(visitor)
 
     def display(self, n: int):
-        return f"{n * '  '}function {self.name}(nargs={len(self.args)})\n{self.code.display(n + 1)}"
+        return f"{n * '  '}function {self.name}(nargs={len(self.args)})\n{self.block.display(n + 1)}"
 
 
 class ExternFunctionNode(BaseNode):
@@ -196,16 +205,15 @@ class ExternFunctionNode(BaseNode):
 
 
 class FunctionCallNode(BaseNode):
-    def __init__(self, span: Span, ident: IdentNode, args: List[ExprNode]):
+    def __init__(self, span: Span, ident: str, args: List[ExprNode]):
         super().__init__(span)
         self.ident = ident
         self.args = args
 
     def visit(self, visitor: Visitor):
-        visitor(self.ident)
         [visitor(a) for a in self.args]
         super().visit(visitor)
 
     def display(self, n: int):
-        s = ''.join(node.display(n + 1) for node in self.args)
+        s = "".join(node.display(n + 1) for node in self.args)
         return f"{n*'  '}call {self.ident}\n{s}"
